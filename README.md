@@ -48,32 +48,32 @@ make clean build
 1. Copy the binary to the target system:
 
 ```bash
-scp simple-updater user@target:/tmp/
+scp simple-updater root@target:/tmp/
 ```
 
 2. Move to a permanent location:
 
 ```bash
-ssh user@target "sudo mv /tmp/simple-updater /usr/local/bin/ && sudo chmod +x /usr/local/bin/simple-updater"
+ssh root@target "mv /tmp/simple-updater /usr/local/bin/ && chmod +x /usr/local/bin/simple-updater"
 ```
 
 3. Install the systemd service template:
 
 ```bash
-scp simple-updater@.service user@target:/tmp/
-ssh user@target "sudo mv /tmp/simple-updater@.service /etc/systemd/system/ && sudo systemctl daemon-reload"
+scp simple-updater@.service root@target:/tmp/
+ssh root@target "mv /tmp/simple-updater@.service /etc/systemd/system/ && systemctl daemon-reload"
 ```
 
 4. Create the download directory:
 
 ```bash
-ssh user@target "sudo mkdir -p /var/lib/mender/download && sudo chmod 755 /var/lib/mender/download"
+ssh root@target "mkdir -p /var/lib/mender/download && chmod 755 /var/lib/mender/download"
 ```
 
 5. Enable and start the service for a specific system (e.g., mdb):
 
 ```bash
-ssh user@target "sudo systemctl enable simple-updater@mdb && sudo systemctl start simple-updater@mdb"
+ssh root@target "systemctl enable simple-updater@mdb && systemctl start simple-updater@mdb"
 ```
 
 Replace `mdb` with `dbc` for the DBC system.
