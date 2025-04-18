@@ -1,0 +1,26 @@
+[Unit]
+Description=Simple Mender Update Daemon (%i)
+After=network.target redis.service
+Wants=redis.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/simple-updater \
+    --redis-addr=localhost:6379 \
+    --update-key=mender/update/%i/url \
+    --checksum-key=mender/update/%i/checksum \
+    --failure-key=mender/update/last-failure \
+    --download-dir=/var/lib/mender/download
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Security hardening
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
