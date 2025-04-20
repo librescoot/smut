@@ -8,9 +8,38 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
+const (
+	// OTAHashKey is the Redis hash key for OTA status and type
+	OTAHashKey = "ota"
+	// OTAStatusField is the field within the OTA hash for the overall OTA status
+	OTAStatusField = "status"
+	// OTAUpdateTypeField is the field within the OTA hash for the update type (blocking/non-blocking)
+	OTAUpdateTypeField = "update-type"
+)
+
 // Client is a Redis client wrapper
 type Client struct {
 	client *redis.Client
+}
+
+// SetStatus sets the status field in the ota hash in Redis
+func (c *Client) SetStatus(ctx context.Context, status string) error {
+	err := c.client.HSet(ctx, OTAHashKey, OTAStatusField, status).Err()
+	if err != nil {
+		return fmt.Errorf("failed to set %s field in %s hash in Redis: %w", OTAStatusField, OTAHashKey, err)
+	}
+	log.Printf("Set %s field in %s hash to '%s'", OTAStatusField, OTAHashKey, status)
+	return nil
+}
+
+// SetUpdateType sets the update-type field in the ota hash in Redis
+func (c *Client) SetUpdateType(ctx context.Context, updateType string) error {
+	err := c.client.HSet(ctx, OTAHashKey, OTAUpdateTypeField, updateType).Err()
+	if err != nil {
+		return fmt.Errorf("failed to set %s field in %s hash in Redis: %w", OTAUpdateTypeField, OTAHashKey, err)
+	}
+	log.Printf("Set %s field in %s hash to '%s'", OTAUpdateTypeField, OTAHashKey, updateType)
+	return nil
 }
 
 // NewClient creates a new Redis client

@@ -12,6 +12,7 @@ type Config struct {
 	UpdateKey   string
 	ChecksumKey string
 	FailureKey  string
+	UpdateType  string // New field for update type
 
 	// Download configuration
 	DownloadDir string
@@ -26,6 +27,7 @@ func Parse() (*Config, error) {
 	flag.StringVar(&cfg.UpdateKey, "update-key", "mender/update/url", "Redis key for update URLs")
 	flag.StringVar(&cfg.ChecksumKey, "checksum-key", "mender/update/checksum", "Redis key for checksums")
 	flag.StringVar(&cfg.FailureKey, "failure-key", "mender/update/last-failure", "Redis key to set on failure")
+	flag.StringVar(&cfg.UpdateType, "update-type", "non-blocking", "Type of update ('blocking' or 'non-blocking')") // New flag
 
 	// Download configuration
 	flag.StringVar(&cfg.DownloadDir, "download-dir", "/tmp", "Directory to store downloaded update files")
@@ -45,6 +47,11 @@ func Parse() (*Config, error) {
 	}
 	if cfg.DownloadDir == "" {
 		return nil, fmt.Errorf("download-dir is required")
+	}
+
+	// Validate update-type
+	if cfg.UpdateType != "blocking" && cfg.UpdateType != "non-blocking" {
+		return nil, fmt.Errorf("invalid update-type '%s', must be 'blocking' or 'non-blocking'", cfg.UpdateType)
 	}
 
 	return cfg, nil

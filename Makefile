@@ -5,7 +5,7 @@ VERSION := $(shell git describe --always --dirty=-$(shell hostname)-$(shell date
 
 # Go parameters
 GOCMD=go
-GOBUILD=$(GOCMD) build -ldflags "-X main.Version=$(VERSION)"
+GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
@@ -28,10 +28,10 @@ build:
 	$(GOBUILD) -o $(BINARY_NAME) $(MAIN_PATH)
 
 build-arm:
-	env GOOS=$(GOOS_ARM) GOARCH=$(GOARCH_ARM) GOARM=$(GOARM) CGO_ENABLED=$(CGO_ENABLED) $(GOBUILD) -o $(BINARY_NAME) $(MAIN_PATH)
+	env GOOS=$(GOOS_ARM) GOARCH=$(GOARCH_ARM) GOARM=$(GOARM) CGO_ENABLED=$(CGO_ENABLED) $(GOBUILD) -ldflags "-X main.Version=$(VERSION)" -o $(BINARY_NAME) $(MAIN_PATH)
 
 dist-arm:
-	env GOOS=$(GOOS_ARM) GOARCH=$(GOARCH_ARM) GOARM=$(GOARM) CGO_ENABLED=$(CGO_ENABLED) $(GOBUILD) -ldflags "-s -w" -o $(BINARY_NAME)-arm-dist $(MAIN_PATH)
+	env GOOS=$(GOOS_ARM) GOARCH=$(GOARCH_ARM) GOARM=$(GOARM) CGO_ENABLED=$(CGO_ENABLED) $(GOBUILD) -ldflags "-s -w -X main.Version=$(VERSION)" -o $(BINARY_NAME)-arm-dist $(MAIN_PATH)
 
 test:
 	$(GOTEST) -v ./...
