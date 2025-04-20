@@ -1,5 +1,5 @@
 [Unit]
-Description=Simple Mender Update Tool (%i)
+Description=Simple Mender Update Tool (DBC)
 After=network.target redis.service
 Wants=redis.service
 
@@ -7,10 +7,11 @@ Wants=redis.service
 Type=simple
 ExecStart=/usr/local/bin/smut \
     --redis-addr=192.168.7.1:6379 \
-    --update-key=mender/update/%i/url \
-    --checksum-key=mender/update/%i/checksum \
+    --update-key=mender/update/dbc/url \
+    --checksum-key=mender/update/dbc/checksum \
     --failure-key=mender/update/last-failure \
-    --download-dir=/var/lib/mender/download
+    --download-dir=/var/lib/mender/download \
+    --update-type=blocking
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal

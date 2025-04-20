@@ -45,42 +45,30 @@ make clean build
 
 ## Installation
 
-1. Copy the binary to the target system:
+The project includes an installer script that handles deployment to both MDB and DBC systems.
 
+1. Build the ARM binary:
 ```bash
-scp smut root@target:/tmp/
+make build-arm
 ```
 
-2. Move to a permanent location:
-
+2. Run the installer:
 ```bash
-ssh root@target "mv /tmp/smut /usr/local/bin/ && chmod +x /usr/local/bin/smut"
+./install.sh <target-host> <target>
 ```
 
-3. Install the systemd service template:
+Where:
+- `target-host`: The hostname/IP of the MDB system
+- `target`: One of:
+  - `mdb`: Install only on MDB
+  - `dbc`: Install only on DBC
+  - `both`: Install on both MDB and DBC
 
-```bash
-scp smut@.service root@target:/tmp/
-ssh root@target "mv /tmp/smut@.service /etc/systemd/system/ && systemctl daemon-reload"
-```
-
-4. Create the download directory:
-
-```bash
-ssh root@target "mkdir -p /var/lib/mender/download && chmod 755 /var/lib/mender/download"
-```
-
-5. Enable and start the service for a specific system (e.g., mdb):
-
-```bash
-ssh root@target "systemctl enable smut@mdb && systemctl start smut@mdb"
-```
-
-Replace `mdb` with `dbc` for the DBC system.
-
-scp "/etc/systemd/system/simple-updater@.service" root@192.168.7.2:/etc/systemd/system/
-scp /usr/local/bin/simple-updater root@192.168.7.2:/usr/local/bin/
-ssh root@192.168.7.2 "mkdir -p /var/lib/mender/download && chmod 755 /var/lib/mender/download && systemctl daemon-reload && systemctl enable --now simple-updater@dbc"
+The installer handles:
+- Copying files to target systems
+- Service installation and configuration
+- GPIO management for DBC communication
+- Service startup and verification
 
 ## Usage
 
@@ -91,8 +79,11 @@ ssh root@192.168.7.2 "mkdir -p /var/lib/mender/download && chmod 755 /var/lib/me
 - `--checksum-key`: Redis key for checksums (default: "mender/update/checksum")
 - `--failure-key`: Redis key to set on failure (default: "mender/update/last-failure")
 - `--download-dir`: Directory to store downloaded update files (default: "/tmp")
+- `--update-type`: Type of update ('blocking' for DBC, 'non-blocking' for MDB) (default: "non-blocking")
 
 ### Redis Usage
+
+SMUT uses the `ota` Redis hash to report status and update type. The `status` field indicates the current state, and the `update-type` field indicates if the update is blocking or non-blocking.
 
 To trigger an update, push the URL to the update key using LPUSH:
 
@@ -118,7 +109,7 @@ The `checksum` is optional. If provided, it should be in the format `algorithm:h
 
 ### Error Reporting
 
-Errors are reported by setting the configured failure key in Redis with the error message as a string.
+Errors are reported by setting the configured failure key in Redis with the error message as a string. The `status` field in the `ota` hash will also be updated to reflect the error state.
 
 ## Monitoring
 
