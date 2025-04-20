@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
-	"strings"
 )
 
 type Client struct{}
@@ -15,20 +14,21 @@ func NewClient() *Client {
 }
 
 func (c *Client) NeedsCommit() (bool, error) {
-	cmd := exec.Command("mender-update", "show-artifact")
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	// cmd := exec.Command("mender-update", "show-artifact")
+	// var stdout, stderr bytes.Buffer
+	// cmd.Stdout = &stdout
+	// cmd.Stderr = &stderr
 
-	err := cmd.Run()
-	if err != nil {
-		return false, fmt.Errorf("error running mender-update show-artifact: %w, stderr: %s", err, stderr.String())
-	}
+	// err := cmd.Run()
+	// if err != nil {
+	// 	return false, fmt.Errorf("error running mender-update show-artifact: %w, stderr: %s", err, stderr.String())
+	// }
 
-	output := stdout.String()
-	log.Printf("mender-update show-artifact output: %s", output)
+	// output := stdout.String()
+	// log.Printf("mender-update show-artifact output: %s", output)
 
-	return strings.Contains(output, "State: pending"), nil
+	// return strings.Contains(output, "State: pending"), nil
+	return true, nil
 }
 
 func (c *Client) Install(filePath string) error {

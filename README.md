@@ -1,10 +1,10 @@
-# Simple Updater
+# Simple Mender Update Tool (SMUT)
 
 A lightweight daemon for managing Mender updates on embedded Linux systems via Redis.
 
 ## Overview
 
-Simple Updater runs on embedded Linux systems (MDB and DBC) and triggers Mender updates via Redis. It handles resumable downloads, checksum verification, and interacts with Mender.
+SMUT runs on embedded Linux systems (MDB and DBC) and triggers Mender updates via Redis. It handles resumable downloads, checksum verification, and interacts with Mender.
 
 ## Features
 
@@ -48,20 +48,20 @@ make clean build
 1. Copy the binary to the target system:
 
 ```bash
-scp simple-updater root@target:/tmp/
+scp smut root@target:/tmp/
 ```
 
 2. Move to a permanent location:
 
 ```bash
-ssh root@target "mv /tmp/simple-updater /usr/local/bin/ && chmod +x /usr/local/bin/simple-updater"
+ssh root@target "mv /tmp/smut /usr/local/bin/ && chmod +x /usr/local/bin/smut"
 ```
 
 3. Install the systemd service template:
 
 ```bash
-scp simple-updater@.service root@target:/tmp/
-ssh root@target "mv /tmp/simple-updater@.service /etc/systemd/system/ && systemctl daemon-reload"
+scp smut@.service root@target:/tmp/
+ssh root@target "mv /tmp/smut@.service /etc/systemd/system/ && systemctl daemon-reload"
 ```
 
 4. Create the download directory:
@@ -73,10 +73,14 @@ ssh root@target "mkdir -p /var/lib/mender/download && chmod 755 /var/lib/mender/
 5. Enable and start the service for a specific system (e.g., mdb):
 
 ```bash
-ssh root@target "systemctl enable simple-updater@mdb && systemctl start simple-updater@mdb"
+ssh root@target "systemctl enable smut@mdb && systemctl start smut@mdb"
 ```
 
 Replace `mdb` with `dbc` for the DBC system.
+
+scp "/etc/systemd/system/simple-updater@.service" root@192.168.7.2:/etc/systemd/system/
+scp /usr/local/bin/simple-updater root@192.168.7.2:/usr/local/bin/
+ssh root@192.168.7.2 "mkdir -p /var/lib/mender/download && chmod 755 /var/lib/mender/download && systemctl daemon-reload && systemctl enable --now simple-updater@dbc"
 
 ## Usage
 
@@ -123,7 +127,7 @@ Errors are reported by setting the configured failure key in Redis with the erro
 When running as a systemd service, logs can be viewed with:
 
 ```bash
-journalctl -u simple-updater@<system> -f
+journalctl -u smut@<system> -f
 ```
 
 Replace `<system>` with `mdb` or `dbc`.
@@ -133,7 +137,7 @@ Replace `<system>` with `mdb` or `dbc`.
 Check the service status with:
 
 ```bash
-systemctl status simple-updater@<system>
+systemctl status smut@<system>
 ```
 
 Replace `<system>` with `mdb` or `dbc`.

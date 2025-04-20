@@ -1,4 +1,4 @@
-module github.com/librescoot/simple-updater
+module github.com/librescoot/smut
 
 go 1.24.1
 

@@ -3,10 +3,12 @@ package download
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -50,20 +52,45 @@ func (m *Manager) Download(ctx context.Context, url string) (string, error) {
 		req.Header.Set("Range", fmt.Sprintf("bytes=%d-", fileSize))
 	}
 
+	// Create a custom transport with separate timeouts
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			VerifyConnection: func(cs tls.ConnectionState) error {
+				// Skip certificate time validation
+				return nil
+			},
+		},
+		// Timeout for establishing TCP connections
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		// Timeout for TLS handshake
+		TLSHandshakeTimeout: 30 * time.Second,
+		// Increase idle connections
+		MaxIdleConns:        100,
+		IdleConnTimeout:     90 * time.Second,
+	}
+
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Transport: transport,
+		// No timeout here - we'll handle timeouts through context
+		Timeout: 0,
 	}
 
 	var resp *http.Response
 	maxRetries := 5
 	for i := 0; i < maxRetries; i++ {
+		log.Printf("Starting download attempt %d/%d", i+1, maxRetries)
 		resp, err = client.Do(req)
 		if err == nil {
 			break
 		}
 		log.Printf("Error downloading file (attempt %d/%d): %v", i+1, maxRetries, err)
 		if i < maxRetries-1 {
-			time.Sleep(time.Duration(1<<uint(i)) * time.Second)
+			sleepTime := time.Duration(1<<uint(i)) * time.Second
+			log.Printf("Waiting %v before retry...", sleepTime)
+			time.Sleep(sleepTime)
 		}
 	}
 	if err != nil {
@@ -78,18 +105,23 @@ func (m *Manager) Download(ctx context.Context, url string) (string, error) {
 	var file *os.File
 	if fileSize > 0 && resp.StatusCode == http.StatusPartialContent {
 		file, err = os.OpenFile(downloadPath, os.O_APPEND|os.O_WRONLY, 0644)
+		log.Printf("Opened file for append at offset %d", fileSize)
 	} else {
 		file, err = os.Create(downloadPath)
 		fileSize = 0
+		log.Printf("Created new file for download")
 	}
 	if err != nil {
 		return "", fmt.Errorf("error opening file: %w", err)
 	}
 	defer file.Close()
 
-	buffer := make([]byte, 32*1024)
+	// Increase buffer size to 1MB for faster downloads
+	buffer := make([]byte, 1024*1024)
 	totalRead := fileSize
 	lastProgressReport := time.Now()
+	start := time.Now()
+	
 	for {
 		select {
 		case <-ctx.Done():
@@ -104,13 +136,17 @@ func (m *Manager) Download(ctx context.Context, url string) (string, error) {
 				totalRead += int64(n)
 
 				if time.Since(lastProgressReport) > 5*time.Second {
-					log.Printf("Downloaded %d bytes so far", totalRead)
+					elapsed := time.Since(start)
+					speed := float64(totalRead) / elapsed.Seconds() / 1024 / 1024 // MB/s
+					log.Printf("Downloaded %d bytes (%.2f MB/s)", totalRead, speed)
 					lastProgressReport = time.Now()
 				}
 			}
 			if err != nil {
 				if err == io.EOF {
-					log.Printf("Download complete, total size: %d bytes", totalRead)
+					elapsed := time.Since(start)
+					speed := float64(totalRead) / elapsed.Seconds() / 1024 / 1024 // MB/s
+					log.Printf("Download complete, total size: %d bytes, average speed: %.2f MB/s", totalRead, speed)
 					return downloadPath, nil
 				}
 				return "", fmt.Errorf("error reading response: %w", err)

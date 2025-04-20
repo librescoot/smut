@@ -1,15 +1,18 @@
-# Simple Updater Makefile
+# Simple Mender Update Tool (SMUT) Makefile
+
+# Version information
+VERSION := $(shell git describe --always --dirty=-$(shell hostname)-$(shell date -u +%Y%m%d-%H%M%S))
 
 # Go parameters
 GOCMD=go
-GOBUILD=$(GOCMD) build
+GOBUILD=$(GOCMD) build -ldflags "-X main.Version=$(VERSION)"
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
-BINARY_NAME=simple-updater
+BINARY_NAME=smut
 BINARY_UNIX=$(BINARY_NAME)
-MAIN_PATH=./cmd/simple-updater
+MAIN_PATH=./cmd/smut
 
 # Cross-compilation parameters
 GOOS_ARM=linux
@@ -19,11 +22,16 @@ CGO_ENABLED=0
 
 all: clean deps build
 
+smut: all
+
 build:
 	$(GOBUILD) -o $(BINARY_NAME) $(MAIN_PATH)
 
 build-arm:
 	env GOOS=$(GOOS_ARM) GOARCH=$(GOARCH_ARM) GOARM=$(GOARM) CGO_ENABLED=$(CGO_ENABLED) $(GOBUILD) -o $(BINARY_NAME) $(MAIN_PATH)
+
+dist-arm:
+	env GOOS=$(GOOS_ARM) GOARCH=$(GOARCH_ARM) GOARM=$(GOARM) CGO_ENABLED=$(CGO_ENABLED) $(GOBUILD) -ldflags "-s -w" -o $(BINARY_NAME)-arm-dist $(MAIN_PATH)
 
 test:
 	$(GOTEST) -v ./...
