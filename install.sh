@@ -2,14 +2,26 @@
 set -euo pipefail
 
 # Check arguments
-if [ $# -ne 2 ]; then
-    echo "Usage: $0 <target-host> <target>"
+if [ $# -lt 2 ] || [ $# -gt 3 ]; then
+    echo "Usage: $0 <target-host> <target> [--skip-upload]"
     echo "target: mdb, dbc, or both"
     exit 1
 fi
 
 TARGET_HOST="$1"
 INSTALL_TARGET="$2"
+SKIP_UPLOAD="false" # Default
+
+if [ $# -eq 3 ]; then
+    if [ "$3" == "--skip-upload" ]; then
+        SKIP_UPLOAD="true"
+    else
+        echo "Error: Invalid third argument. Usage: $0 <target-host> <target> [--skip-upload]"
+        echo "target: mdb, dbc, or both"
+        exit 1
+    fi
+fi
+
 
 if [[ ! "$INSTALL_TARGET" =~ ^(mdb|dbc|both)$ ]]; then
     echo "Error: target must be 'mdb', 'dbc', or 'both'"
@@ -27,10 +39,16 @@ if [ ! -x "$SOURCE_BINARY" ]; then
     exit 1
 fi
 
-echo "=== Copying files to MDB ($TARGET_HOST) ==="
+echo "=== Preparing files for MDB ($TARGET_HOST) ==="
 
-# Copy all files to MDB in a single scp command
-scp -CO "$SOURCE_BINARY" "$MDB_SERVICE" "$DBC_SERVICE" "$TARGET_HOST:/tmp/"
+# Conditionally copy files to MDB
+if [ "$SKIP_UPLOAD" != "true" ]; then
+    echo "Copying files to MDB..."
+    scp -CO "$SOURCE_BINARY" "$MDB_SERVICE" "$DBC_SERVICE" "$TARGET_HOST:/tmp/"
+else
+    echo "Skipping file upload. Assuming binary and service files are already in /tmp/ on $TARGET_HOST."
+fi
+
 
 # Configure everything in one SSH session
 ssh "$TARGET_HOST" "
@@ -52,8 +70,8 @@ ssh "$TARGET_HOST" "
         echo 'Preparing DBC connection...'
         systemctl stop unu-vehicle || true
         echo 50 | tee /sys/class/gpio/export || true
-        echo out | tee /sys/class/gpio/gpio50/direction
-        echo 1 | tee /sys/class/gpio/gpio50/value
+        echo out | tee /sys/class/gpio/gpio50/direction || true
+        echo 1 | tee /sys/class/gpio/gpio50/value || true
 
         # Wait for DBC to be accessible
         echo 'Waiting for DBC to respond...'
@@ -91,9 +109,10 @@ ssh "$TARGET_HOST" "
 
         # Reset GPIO and restart unu-vehicle
         echo 'Resetting GPIO and restarting unu-vehicle...'
-        sleep 3
-        echo 0 | tee /sys/class/gpio/gpio50/value
-        echo 50 | tee /sys/class/gpio/unexport
+        sleep 1
+        echo 0 | tee /sys/class/gpio/gpio50/value || true
+        echo 50 | tee /sys/class/gpio/unexport || true
+        sleep 1
         systemctl start unu-vehicle
     fi
 
