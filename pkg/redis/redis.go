@@ -29,6 +29,15 @@ func (c *Client) SetStatus(ctx context.Context, status string) error {
 		return fmt.Errorf("failed to set %s field in %s hash in Redis: %w", OTAStatusField, OTAHashKey, err)
 	}
 	log.Printf("Set %s field in %s hash to '%s'", OTAStatusField, OTAHashKey, status)
+
+	// Publish the status update
+	publishErr := c.client.Publish(ctx, OTAHashKey, OTAStatusField).Err()
+	if publishErr != nil {
+		log.Printf("Failed to publish status update for field %s: %v", OTAStatusField, publishErr)
+	} else {
+		log.Printf("Published status update for field %s", OTAStatusField)
+	}
+
 	return nil
 }
 
@@ -39,6 +48,15 @@ func (c *Client) SetUpdateType(ctx context.Context, updateType string) error {
 		return fmt.Errorf("failed to set %s field in %s hash in Redis: %w", OTAUpdateTypeField, OTAHashKey, err)
 	}
 	log.Printf("Set %s field in %s hash to '%s'", OTAUpdateTypeField, OTAHashKey, updateType)
+
+	// Publish the update type update
+	publishErr := c.client.Publish(ctx, OTAHashKey, OTAUpdateTypeField).Err()
+	if publishErr != nil {
+		log.Printf("Failed to publish update type update for field %s: %v", OTAUpdateTypeField, publishErr)
+	} else {
+		log.Printf("Published update type update for field %s", OTAUpdateTypeField)
+	}
+
 	return nil
 }
 
