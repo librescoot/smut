@@ -135,4 +135,4 @@ Replace `<system>` with `mdb` or `dbc`.
 
 ## License
 
-[MIT](LICENSE)
+[Affero GPL 3.0](LICENSE.md)
