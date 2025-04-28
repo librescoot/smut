@@ -58,8 +58,8 @@ ssh "$TARGET_HOST" "
     if [[ '$INSTALL_TARGET' =~ ^(mdb|both)$ ]]; then
         echo 'Configuring MDB...'
         systemctl stop smut@mdb || true
-        cp /tmp/$SOURCE_BINARY /usr/local/bin/$TARGET_BINARY
-        chmod +x /usr/local/bin/$TARGET_BINARY
+        cp /tmp/$SOURCE_BINARY /usr/bin/$TARGET_BINARY
+        chmod +x /usr/bin/$TARGET_BINARY
         cp /tmp/$MDB_SERVICE /etc/systemd/system/$MDB_SERVICE
         systemctl daemon-reload
         systemctl enable --now smut@mdb
@@ -91,8 +91,8 @@ ssh "$TARGET_HOST" "
         ssh root@192.168.7.2 '
             set -euo pipefail
             systemctl stop smut@dbc || true
-            cp /tmp/$SOURCE_BINARY /usr/local/bin/$TARGET_BINARY
-            chmod +x /usr/local/bin/$TARGET_BINARY
+            cp /tmp/$SOURCE_BINARY /usr/bin/$TARGET_BINARY
+            chmod +x /usr/bin/$TARGET_BINARY
             cp /tmp/$DBC_SERVICE /etc/systemd/system/$DBC_SERVICE
             systemctl daemon-reload
             systemctl enable --now smut@dbc
