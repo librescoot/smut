@@ -136,6 +136,14 @@ func main() {
 				if err := redisClient.SetUpdateType(ctx, "none"); err != nil {
 					log.Printf("Error setting update type to none in Redis: %v", err)
 				}
+				
+				// Wait for reboot instead of continuing to check for updates
+				log.Println("Update installed successfully. Waiting for reboot...")
+				select {
+				case <-ctx.Done():
+					log.Println("Context canceled, exiting...")
+					return
+				}
 			}
 		}
 	}
