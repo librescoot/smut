@@ -11,6 +11,7 @@ SMUT runs on embedded Linux systems (MDB and DBC) and triggers Mender updates vi
 - Redis BLPOP for update requests
 - Resumable downloads with retry
 - Checksum verification (SHA256)
+- Support for file:// URLs for local file installation
 - Automatic Mender update install and commit
 - Error reporting via Redis
 - Cross-compilation for armv7l
@@ -88,12 +89,20 @@ SMUT uses the `ota` Redis hash to report status and update type. The `status` fi
 To trigger an update, push the URL to the update key using LPUSH:
 
 ```bash
-# For MDB system
+# For MDB system with remote file
 redis-cli LPUSH mender/update/mdb/url "http://example.com/path/to/update.mender"
 
-# For DBC system
+# For DBC system with remote file
 redis-cli LPUSH mender/update/dbc/url "http://example.com/path/to/update.mender"
+
+# For MDB system with local file
+redis-cli LPUSH mender/update/mdb/url "file:///path/to/local/update.mender"
+
+# For DBC system with local file
+redis-cli LPUSH mender/update/dbc/url "file:///path/to/local/update.mender"
 ```
+
+When using `file://` URLs, SMUT will skip the download step and directly use the specified local file for installation. The file path must be absolute and accessible to the SMUT process.
 
 To set a checksum (optional):
 

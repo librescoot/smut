@@ -176,20 +176,31 @@ func handleUpdate(
 	redisClient *redis.Client,
 	cfg *config.Config,
 ) error {
-	// Set status to downloading-updates
-	if err := redisClient.SetStatus(ctx, "downloading-updates"); err != nil {
-		log.Printf("Error setting status to downloading-updates in Redis: %v", err)
-	}
-
-	downloadPath, err := downloadManager.Download(ctx, url)
-	if err != nil {
-		// Set status to downloading-update-error on download error
-		if err := redisClient.SetStatus(ctx, "downloading-update-error"); err != nil {
-			log.Printf("Error setting status to downloading-update-error in Redis: %v", err)
+	var downloadPath string
+	var err error
+	
+	// Check if this is a file:// URL
+	if strings.HasPrefix(url, "file://") {
+		// For file:// URLs, extract the path and skip downloading
+		filePath := strings.TrimPrefix(url, "file://")
+		log.Printf("Using local file: %s", filePath)
+		downloadPath = filePath
+	} else {
+		// Set status to downloading-updates for non-file URLs
+		if err := redisClient.SetStatus(ctx, "downloading-updates"); err != nil {
+			log.Printf("Error setting status to downloading-updates in Redis: %v", err)
 		}
-		return fmt.Errorf("error downloading update: %w", err)
+
+		downloadPath, err = downloadManager.Download(ctx, url)
+		if err != nil {
+			// Set status to downloading-update-error on download error
+			if err := redisClient.SetStatus(ctx, "downloading-update-error"); err != nil {
+				log.Printf("Error setting status to downloading-update-error in Redis: %v", err)
+			}
+			return fmt.Errorf("error downloading update: %w", err)
+		}
+		log.Printf("Downloaded update to: %s", downloadPath)
 	}
-	log.Printf("Downloaded update to: %s", downloadPath)
 
 	checksum, err := redisClient.GetChecksum(ctx, cfg.ChecksumKey)
 	if err != nil {
@@ -227,8 +238,11 @@ func handleUpdate(
 	}
 	log.Println("Update installed successfully")
 
-	if err := os.Remove(downloadPath); err != nil {
-		log.Printf("Warning: Failed to remove downloaded file %s: %v", downloadPath, err)
+	// Only remove the file if it was downloaded (not a file:// URL)
+	if !strings.HasPrefix(url, "file://") {
+		if err := os.Remove(downloadPath); err != nil {
+			log.Printf("Warning: Failed to remove downloaded file %s: %v", downloadPath, err)
+		}
 	}
 
 	// Set final success status based on update type
