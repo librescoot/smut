@@ -40,9 +40,10 @@ func (m *Manager) Download(ctx context.Context, url string) (string, error) {
 		filename = "update.mender"
 	}
 
-	downloadPath := filepath.Join(m.downloadDir, filename)
+	finalPath := filepath.Join(m.downloadDir, filename)
+	downloadTempPath := filepath.Join(m.downloadDir, filename+".tmp")
 
-	fileInfo, err := os.Stat(downloadPath)
+	fileInfo, err := os.Stat(downloadTempPath)
 	var fileSize int64
 	if err == nil {
 		fileSize = fileInfo.Size()
@@ -112,10 +113,10 @@ func (m *Manager) Download(ctx context.Context, url string) (string, error) {
 
 	var file *os.File
 	if fileSize > 0 && resp.StatusCode == http.StatusPartialContent {
-		file, err = os.OpenFile(downloadPath, os.O_APPEND|os.O_WRONLY, 0644)
+		file, err = os.OpenFile(downloadTempPath, os.O_APPEND|os.O_WRONLY, 0644)
 		log.Printf("Opened file for append at offset %d", fileSize)
 	} else {
-		file, err = os.Create(downloadPath)
+		file, err = os.Create(downloadTempPath)
 		fileSize = 0
 		log.Printf("Created new file for download")
 	}
@@ -155,7 +156,14 @@ func (m *Manager) Download(ctx context.Context, url string) (string, error) {
 					elapsed := time.Since(start)
 					speed := float64(totalRead) / elapsed.Seconds() / 1024 / 1024 // MB/s
 					log.Printf("Download complete, total size: %d bytes, average speed: %.2f MB/s", totalRead, speed)
-					return downloadPath, nil
+					
+					file.Close()
+					if err := os.Rename(downloadTempPath, finalPath); err != nil {
+						return "", fmt.Errorf("error renaming temporary file: %w", err)
+					}
+					log.Printf("Renamed temporary file %s to %s", downloadTempPath, finalPath)
+					
+					return finalPath, nil
 				}
 				return "", fmt.Errorf("error reading response: %w", err)
 			}
