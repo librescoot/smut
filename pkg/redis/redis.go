@@ -81,9 +81,11 @@ func (c *Client) Close() error {
 	return c.client.Close()
 }
 
-// WaitForUpdate waits for an update URL using BLPOP
+// WaitForUpdate waits for an update URL using BLPOP and keeps popping until the list is empty
 func (c *Client) WaitForUpdate(ctx context.Context, updateKey string, checksumKey string) (string, string, error) {
 	log.Printf("Waiting for update on key: %s", updateKey)
+	
+	// First BLPOP to wait for at least one entry
 	result, err := c.client.BLPop(ctx, 0, updateKey).Result()
 	if err != nil {
 		if err == context.Canceled {
@@ -96,10 +98,34 @@ func (c *Client) WaitForUpdate(ctx context.Context, updateKey string, checksumKe
 		return "", "", fmt.Errorf("unexpected result from BLPOP: %v", result)
 	}
 
-	url := result[1]
-	if url == "" {
+	// Get the first URL
+	lastUrl := result[1]
+	if lastUrl == "" {
 		return "", "", fmt.Errorf("received empty URL")
 	}
+	
+	// Keep popping until the list is empty
+	for {
+		// Use LPOP (non-blocking) to check if there are more entries
+		result, err := c.client.LPop(ctx, updateKey).Result()
+		if err != nil {
+			if err == redis.Nil {
+				// List is empty, we're done
+				break
+			}
+			// Log other errors but continue with the last URL we got
+			log.Printf("Warning: Error during LPOP from key %s: %v", updateKey, err)
+			break
+		}
+		
+		// If we got a non-empty URL, update our lastUrl
+		if result != "" {
+			log.Printf("Found additional URL in list, using: %s", result)
+			lastUrl = result
+		}
+	}
+	
+	log.Printf("Using final URL from list: %s", lastUrl)
 
 	checksum := ""
 	if checksumKey != "" {
@@ -112,7 +138,7 @@ func (c *Client) WaitForUpdate(ctx context.Context, updateKey string, checksumKe
 		}
 	}
 
-	return url, checksum, nil
+	return lastUrl, checksum, nil
 }
 
 // GetChecksum gets the checksum from Redis
