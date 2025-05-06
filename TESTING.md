@@ -1,7 +1,5 @@
 # Simple Mender Update Tool Tests
 
-This directory contains tests for the Simple Mender Update Tool (SMUT).
-
 ## Test Files
 
 - `download_test.go`: Tests for the download manager functionality
@@ -16,15 +14,15 @@ This directory contains tests for the Simple Mender Update Tool (SMUT).
 To run all Go tests:
 
 ```bash
-go test -v ./tests
+go test -v
 ```
 
 To run a specific Go test:
 
 ```bash
-go test -v ./tests -run TestDownloadManager
-go test -v ./tests -run TestFileURLSupport
-go test -v ./tests -run TestChecksumVerification
+go test -v -run TestDownloadManager
+go test -v -run TestFileURLSupport
+go test -v -run TestChecksumVerification
 ```
 
 ### Shell Script Tests
