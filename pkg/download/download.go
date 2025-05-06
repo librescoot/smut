@@ -21,6 +21,14 @@ type Manager struct {
 }
 
 func NewManager(downloadDir string) *Manager {
+	// Ensure download directory exists
+	if _, err := os.Stat(downloadDir); os.IsNotExist(err) {
+		log.Printf("Download directory %s does not exist, creating it...", downloadDir)
+		if err := os.MkdirAll(downloadDir, 0755); err != nil {
+			log.Printf("Error creating download directory: %v", err)
+		}
+	}
+	
 	return &Manager{
 		downloadDir: downloadDir,
 	}
