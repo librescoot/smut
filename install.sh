@@ -30,8 +30,8 @@ fi
 
 SOURCE_BINARY="smut-arm-dist"
 TARGET_BINARY="smut"
-MDB_SERVICE="smut@mdb.service"
-DBC_SERVICE="smut@dbc.service"
+MDB_SERVICE="smut-mdb.service"
+DBC_SERVICE="smut-dbc.service"
 
 # Check if ARM binary exists and is executable
 if [ ! -x "$SOURCE_BINARY" ]; then
@@ -57,12 +57,12 @@ ssh "$TARGET_HOST" "
     # Install and enable MDB service if requested
     if [[ '$INSTALL_TARGET' =~ ^(mdb|both)$ ]]; then
         echo 'Configuring MDB...'
-        systemctl stop smut@mdb || true
+        systemctl stop smut-mdb || true
         cp /tmp/$SOURCE_BINARY /usr/bin/$TARGET_BINARY
         chmod +x /usr/bin/$TARGET_BINARY
         cp /tmp/$MDB_SERVICE /etc/systemd/system/$MDB_SERVICE
         systemctl daemon-reload
-        systemctl enable --now smut@mdb
+        systemctl enable --now smut-mdb
     fi
 
     # Handle DBC installation if requested
@@ -90,20 +90,20 @@ ssh "$TARGET_HOST" "
         
         ssh root@192.168.7.2 '
             set -euo pipefail
-            systemctl stop smut@dbc || true
+            systemctl stop smut-dbc || true
             cp /tmp/$SOURCE_BINARY /usr/bin/$TARGET_BINARY
             chmod +x /usr/bin/$TARGET_BINARY
             cp /tmp/$DBC_SERVICE /etc/systemd/system/$DBC_SERVICE
             systemctl daemon-reload
-            systemctl enable --now smut@dbc
+            systemctl enable --now smut-dbc
             rm /tmp/$SOURCE_BINARY /tmp/$DBC_SERVICE
             
             # Verify service started correctly
-            if ! systemctl is-active --quiet smut@dbc; then
-                echo \"Error: smut@dbc failed to start on DBC\"
+            if ! systemctl is-active --quiet smut-dbc; then
+                echo \"Error: smut-dbc failed to start on DBC\"
                 exit 1
             fi
-            echo \"smut@dbc started successfully on DBC\"
+            echo \"smut-dbc started successfully on DBC\"
             exit
         '
 
