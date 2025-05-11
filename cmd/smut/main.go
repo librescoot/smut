@@ -53,6 +53,10 @@ func main() {
 	}
 	defer redisClient.Close()
 
+	// Set the update key and component in the Redis client
+	redisClient.SetUpdateKey(cfg.UpdateKey)
+	redisClient.SetComponent(cfg.Component)
+
 	// Set initial status and update type
 	if err := redisClient.SetStatus(ctx, "initializing"); err != nil {
 		log.Printf("Error setting initial status in Redis: %v", err)

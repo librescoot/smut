@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -20,6 +21,8 @@ const (
 // Client is a Redis client wrapper
 type Client struct {
 	client *redis.Client
+	updateKey string
+	component string
 }
 
 // SetStatus sets the status field in the ota hash in Redis
@@ -29,6 +32,16 @@ func (c *Client) SetStatus(ctx context.Context, status string) error {
 		return fmt.Errorf("failed to set %s field in %s hash in Redis: %w", OTAStatusField, OTAHashKey, err)
 	}
 	log.Printf("Set %s field in %s hash to '%s'", OTAStatusField, OTAHashKey, status)
+
+	// Set component-specific status field using the configured component
+	if c.component != "" {
+		componentStatusField := fmt.Sprintf("status:%s", c.component)
+		if err := c.client.HSet(ctx, OTAHashKey, componentStatusField, status).Err(); err != nil {
+			log.Printf("Warning: Failed to set component status %s: %v", componentStatusField, err)
+		} else {
+			log.Printf("Set %s field in %s hash to '%s'", componentStatusField, OTAHashKey, status)
+		}
+	}
 
 	// Publish the status update
 	publishErr := c.client.Publish(ctx, OTAHashKey, OTAStatusField).Err()
@@ -40,6 +53,7 @@ func (c *Client) SetStatus(ctx context.Context, status string) error {
 
 	return nil
 }
+
 
 // SetUpdateType sets the update-type field in the ota hash in Redis
 func (c *Client) SetUpdateType(ctx context.Context, updateType string) error {
@@ -73,7 +87,21 @@ func NewClient(ctx context.Context, addr string) (*Client, error) {
 
 	return &Client{
 		client: client,
+		updateKey: "", // Will be set by SetUpdateKey
+		component: "", // Will be set by SetComponent
 	}, nil
+}
+
+// SetUpdateKey sets the update key for the client
+func (c *Client) SetUpdateKey(updateKey string) {
+	c.updateKey = updateKey
+	log.Printf("Set update key to: %s", updateKey)
+}
+
+// SetComponent sets the component for the client
+func (c *Client) SetComponent(component string) {
+	c.component = component
+	log.Printf("Set component to: %s", component)
 }
 
 // Close closes the Redis client
@@ -84,6 +112,9 @@ func (c *Client) Close() error {
 // WaitForUpdate waits for an update URL using BLPOP and keeps popping until the list is empty
 func (c *Client) WaitForUpdate(ctx context.Context, updateKey string, checksumKey string) (string, string, error) {
 	log.Printf("Waiting for update on key: %s", updateKey)
+
+	// Store the update key
+	c.updateKey = updateKey
 	
 	// First BLPOP to wait for at least one entry
 	result, err := c.client.BLPop(ctx, 0, updateKey).Result()

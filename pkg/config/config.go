@@ -13,6 +13,7 @@ type Config struct {
 	ChecksumKey string
 	FailureKey  string
 	UpdateType  string // New field for update type
+	Component   string // Component name (dbc, mdb)
 
 	// Download configuration
 	DownloadDir string
@@ -32,6 +33,9 @@ func Parse() (*Config, error) {
 	// Download configuration
 	flag.StringVar(&cfg.DownloadDir, "download-dir", "/tmp", "Directory to store downloaded update files")
 
+	// Add component flag
+	flag.StringVar(&cfg.Component, "component", "", "Component to update (e.g. dbc, mdb)")
+
 	// Parse flags
 	flag.Parse()
 
@@ -47,6 +51,9 @@ func Parse() (*Config, error) {
 	}
 	if cfg.DownloadDir == "" {
 		return nil, fmt.Errorf("download-dir is required")
+	}
+	if cfg.Component == "" {
+		return nil, fmt.Errorf("component is required")
 	}
 
 	// Validate update-type
